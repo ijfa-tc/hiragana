@@ -119,10 +119,12 @@ h1{font-family:"Klee One","Hiragino Mincho ProN",serif;font-weight:600;font-size
 <g id="nums" font-size="7" fill="var(--sub)" font-family="Zen Kaku Gothic New,sans-serif"></g>
 <g id="done" fill="none" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></g>
 <g id="hint" fill="none" stroke="var(--hint)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></g>
+<g id="bbad" fill="none" stroke="var(--ng)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></g>
 <path id="ink" fill="none" stroke="var(--trace)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 <div class="row">
 <button class="btn" id="retry">もう一度<small class="s">Ulangi</small></button>
+<button class="btn" id="blind">見本なし<small class="s">Tanpa contoh</small></button>
 <button class="btn primary" id="next">次の文字<small class="s">Huruf berikutnya</small></button>
 </div>
 </section>
@@ -174,8 +176,13 @@ function clearT(){timers.forEach(clearTimeout);timers=[];}
 let WM=null,wi=0,wmiss=0;
 function drawRow(fin){const R=$("wrow");R.hidden=false;const L=[...WM.k];R.style.gridTemplateColumns="repeat("+Math.max(L.length,4)+",minmax(0,1fr))";R.innerHTML=L.map((c,i)=>{const done=i<wi||(fin&&i===wi);const on=i===wi&&!fin;const col=done?"var(--ink)":"var(--guide)";return '<svg viewBox="0 0 109 109" class="'+(on?"on":"")+'" aria-label="'+c+'"><line x1="54.5" y1="2" x2="54.5" y2="107" stroke="var(--grid)" stroke-width=".8" stroke-dasharray="3 3"/><line x1="2" y1="54.5" x2="107" y2="54.5" stroke="var(--grid)" stroke-width=".8" stroke-dasharray="3 3"/><g fill="none" stroke="'+col+'" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">'+(DATA[c]?DATA[c].s.map(d=>'<path d="'+d+'"/>').join(""):"")+"</g></svg>";}).join("");}
 function wordHead(){$("ch").textContent=WM.k;$("rm").textContent=WM.r+" ・ "+WM.id;setMsg((wi+1)+"文字目「"+cur+"」をなぞってください","Telusuri huruf ke-"+(wi+1));drawRow();}
-function openWord(w){WM=w;wi=0;wmiss=0;cur=[...w.k][0];$("home").hidden=true;$("practice").hidden=false;window.scrollTo(0,0);reset();}
-function open(c){WM=null;$("wrow").hidden=true;cur=c;$("home").hidden=true;$("practice").hidden=false;window.scrollTo(0,0);reset();}
+function openWord(w){exitBlind();WM=w;wi=0;wmiss=0;cur=[...w.k][0];$("home").hidden=true;$("practice").hidden=false;window.scrollTo(0,0);reset();}
+let BL=0,bstr=[],braw=null;
+function exitBlind(){BL=0;braw=null;$("guide").style.display="";$("nums").style.display="";$("bbad").innerHTML="";$("done").style.opacity=1;$("blind").innerHTML='見本なし<small class="s">Tanpa contoh</small>';}
+function drawB(){$("done").innerHTML=bstr.map(p=>'<path d="M'+p.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join("L")+'"/>').join("");}
+function blindOn(){clearT();BL=1;bstr=[];braw=null;busy=false;$("guide").style.display="none";$("nums").style.display="none";$("done").innerHTML="";$("done").style.opacity=1;$("hint").innerHTML="";$("bbad").innerHTML="";$("ink").setAttribute("d","");$("cnt").textContent="";setMsg("見本なしで書いてみましょう。書き終わったら「答え合わせ」","Tulis tanpa contoh, lalu tekan Periksa.");$("blind").innerHTML='答え合わせ<small class="s">Periksa</small>';}
+function showHintAll(){$("hint").innerHTML="";let t0=100;DATA[cur].s.forEach(d=>{const p=mk($("hint"),d),L=p.getTotalLength();p.remove();const dur=Math.max(.4,L/55);anim($("hint"),d,dur,t0);t0+=dur*1000+250;});}
+function open(c){exitBlind();WM=null;$("wrow").hidden=true;cur=c;$("home").hidden=true;$("practice").hidden=false;window.scrollTo(0,0);reset();}
 function reset(){clearT();const d=DATA[cur];k=0;miss=0;busy=false;$("ch").textContent=cur;$("rm").textContent=ROMA[cur]+(MEAN[cur]?" ・ "+MEAN[cur]:"");["guide","nums","done","hint"].forEach(i=>$(i).innerHTML="");$("ink").setAttribute("d","");
 tmp=d.s.map(s=>sample(mk($("guide"),s)));
 d.n.forEach((xy,i)=>{const t=document.createElementNS(NS,"text");t.setAttribute("x",xy[0]);t.setAttribute("y",xy[1]);t.textContent=i+1;$("nums").appendChild(t);});
@@ -187,9 +194,9 @@ function finish(){if(WM){wmiss+=miss;const L=[...WM.k];drawRow(true);if(wi<L.len
 if(perfect)setMsg("◎ よくできました。まちがいなし！","Sempurna, tanpa kesalahan!","ok");else setMsg("○ クリア。もう一度やって◎をめざしましょう","Selesai. Coba lagi untuk dapat ◎","ok");}
 const pad=$("pad");
 function pt(e){const m=pad.getScreenCTM().inverse(),p=pad.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(m);return[q.x,q.y];}
-pad.addEventListener("pointerdown",e=>{if(busy||k>=tmp.length)return;e.preventDefault();drawing=true;pad.setPointerCapture(e.pointerId);pts=[pt(e)];$("ink").setAttribute("d","");});
-pad.addEventListener("pointermove",e=>{if(!drawing)return;pts.push(pt(e));$("ink").setAttribute("d","M"+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L"));});
-function end(){if(!drawing)return;drawing=false;const u=rs(pts);$("ink").setAttribute("d","");if(!u)return;
+pad.addEventListener("pointerdown",e=>{if(BL){if(BL===1){e.preventDefault();pad.setPointerCapture(e.pointerId);braw=[pt(e)];}return;}if(busy||k>=tmp.length)return;e.preventDefault();drawing=true;pad.setPointerCapture(e.pointerId);pts=[pt(e)];$("ink").setAttribute("d","");});
+pad.addEventListener("pointermove",e=>{if(BL){if(braw){braw.push(pt(e));$("ink").setAttribute("d","M"+braw.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L"));}return;}if(!drawing)return;pts.push(pt(e));$("ink").setAttribute("d","M"+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L"));});
+function end(){if(BL){if(!braw)return;const p=braw;braw=null;$("ink").setAttribute("d","");let L=0;for(let i=1;i<p.length;i++)L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);if(L>=2){bstr.push(p);drawB();}return;}if(!drawing)return;drawing=false;const u=rs(pts);$("ink").setAttribute("d","");if(!u)return;
 const n=tmp.length,dk=dist(u,tmp[k]);
 if(dk<TH&&ends(u,tmp[k])){mk($("done"),DATA[cur].s[k]);k++;updCnt();if(k>=n)finish();else setMsg((k+1)+"画目をなぞってください","Telusuri goresan ke-"+(k+1),miss?"":"ok");return;}
 miss++;busy=true;
@@ -197,12 +204,13 @@ if(dist(u,tmp[k].slice().reverse())<TH){setMsg("向きが逆です。オレン�
 for(let j=k+1;j<n;j++){if(dist(u,tmp[j])<TH){setMsg("書き順がちがいます。先に"+(k+1)+"画目です","Urutan salah. Goresan ke-"+(k+1)+" dulu.","ng");hint(k);return;}}
 setMsg("もう一度。オレンジの線をよく見てなぞりましょう","Coba lagi. Perhatikan garis oranye.","ng");hint(k);}
 pad.addEventListener("pointerup",end);pad.addEventListener("pointercancel",end);
-$("demo").onclick=()=>{reset();busy=true;const s=DATA[cur].s;let t=100;$("done").innerHTML="";s.forEach(d=>{const L=(()=>{const p=mk($("hint"),d),l=p.getTotalLength();p.remove();return l})(),dur=Math.max(.5,L/55);anim($("hint"),d,dur,t);t+=dur*1000+350;});setMsg("お手本を見てください","Perhatikan contohnya.");timers.push(setTimeout(()=>{$("hint").innerHTML="";busy=false;k=0;updCnt();setMsg("1画目をなぞってください","Telusuri goresan ke-1");},t+400));};
-$("retry").onclick=()=>{if(WM)openWord(WM);else reset();};
+$("demo").onclick=()=>{exitBlind();reset();busy=true;const s=DATA[cur].s;let t=100;$("done").innerHTML="";s.forEach(d=>{const L=(()=>{const p=mk($("hint"),d),l=p.getTotalLength();p.remove();return l})(),dur=Math.max(.5,L/55);anim($("hint"),d,dur,t);t+=dur*1000+350;});setMsg("お手本を見てください","Perhatikan contohnya.");timers.push(setTimeout(()=>{$("hint").innerHTML="";busy=false;k=0;updCnt();setMsg("1画目をなぞってください","Telusuri goresan ke-1");},t+400));};
+$("retry").onclick=()=>{if(BL){blindOn();return;}if(WM)openWord(WM);else reset();};
+$("blind").onclick=()=>{if(BL===0){blindOn();return;}if(BL===2){exitBlind();reset();return;}if(!bstr.length){setMsg("まだ何も書いていません","Belum ada tulisan.","ng");return;}const keep=tstr;tstr=bstr;window.__SG=$("hint");const r=judge(cur);window.__SG=null;tstr=keep;BL=2;if(!r){setMsg("◎ 正解！見本なしで書けました","Benar! Kamu bisa menulis tanpa contoh.","ok");}else{setMsg("× "+r[0],r[1],"ng");if(r[2]!=null&&bstr[r[2]])$("bbad").innerHTML='<path d="M'+bstr[r[2]].map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join("L")+'"/>';$("done").style.opacity=.35;showHintAll();}$("blind").innerHTML='見本を出す<small class="s">Tampilkan contoh</small>';};
 $("say").hidden=!("speechSynthesis" in window);
 $("say").onclick=()=>{try{const u=new SpeechSynthesisUtterance(WM?WM.k:cur);u.lang="ja-JP";u.rate=0.85;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}};
 $("next").onclick=()=>{if(WM){const S=SETS[set].words;const i=S.indexOf(WM);openWord(S[(i+1)%S.length]);return;}const O=orderOf(setOf(cur));const i=O.indexOf(cur);open(O[(i+1)%O.length]);};
-$("back").onclick=()=>{clearT();if(!WM){set=setOf(cur);grp=SETS[set].g;}$("practice").hidden=true;$("home").hidden=false;buildTable();};
+$("back").onclick=()=>{clearT();exitBlind();if(!WM){set=setOf(cur);grp=SETS[set].g;}$("practice").hidden=true;$("home").hidden=false;buildTable();};
 const TEST_TH=15;let TQ=[],ti=0,tscore=0,twrong=[],tstr=[],traw=null,tdone=false,tend=false;const tpad=$("tpad");
 function ptOn(sv,e){const m=sv.getScreenCTM().inverse(),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(m);return[q.x,q.y];}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -212,15 +220,15 @@ function startTest(){TQ=shuffle(orderOf(set).slice()).slice(0,10);ti=0;tscore=0;
 function redrawInk(){$("tink").innerHTML=tstr.map(p=>'<path d="M'+p.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join("L")+'"/>').join("");}
 function showQ(){const c=TQ[ti];tstr=[];tdone=false;$("tpad").hidden=false;$("tundo").hidden=false;$("tink").style.opacity=1;$("tink").innerHTML="";$("tans").innerHTML="";$("tcur").setAttribute("d","");$("tprog").textContent=(ti+1)+" / "+TQ.length;const L=TL[grp]||TL.hira;$("tlabel").innerHTML=L[0]+'<span class="s">'+L[1]+"</span>";if(grp==="kanji"){$("tq").textContent=MEAN[c];$("tq2").textContent=ROMA[c];}else{$("tq").textContent=ROMA[c];$("tq2").textContent="";}setMsg2("書き終わったら「答え合わせ」を押してください","Setelah selesai, tekan Periksa.");$("tcheck").innerHTML='答え合わせ<small class="s">Periksa</small>';$("tundo").disabled=false;}
 function bbox(a){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;a.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);});return[x0,y0,x1,y1];}
-function judge(c){const T=DATA[c].s.map(d=>{const p=mk($("tsamp"),d);const a=sample(p);p.remove();return a;});const n=T.length;
+function judge(c){const T=DATA[c].s.map(d=>{const p=mk(window.__SG||$("tsamp"),d);const a=sample(p);p.remove();return a;});const n=T.length;
 if(tstr.length!==n)return["画数がちがいます（正しくは"+n+"画、書いたのは"+tstr.length+"画）","Jumlah goresan salah (seharusnya "+n+")"];
 const tb=bbox(T.flat()),ub=bbox(tstr.flat());const ts=Math.max(tb[2]-tb[0],tb[3]-tb[1]),us=Math.max(ub[2]-ub[0],ub[3]-ub[1])||1,sc=ts/us;const tx=(tb[0]+tb[2])/2,ty=(tb[1]+tb[3])/2,ux=(ub[0]+ub[2])/2,uy=(ub[1]+ub[3])/2;
 const N=tstr.map(s=>rs(s.map(([x,y])=>[(x-ux)*sc+tx,(y-uy)*sc+ty])));
 const dirc=(u,v)=>{const a=[u[31][0]-u[0][0],u[31][1]-u[0][1]],b=[v[31][0]-v[0][0],v[31][1]-v[0][1]],la=Math.hypot(...a),lb=Math.hypot(...b);return lb<3||la<1?1:(a[0]*b[0]+a[1]*b[1])/(la*lb);};
-for(let i=0;i<n;i++){const u=N[i];if(!u)return[(i+1)+"画目が短すぎます","Goresan ke-"+(i+1)+" terlalu pendek"];const di=dist(u,T[i]);let better=-1;for(let q=i+1;q<n;q++){if(dist(u,T[q])<di*0.6&&dist(u,T[q])<TEST_TH){better=q;break;}}if(better>=0)return["書き順がちがいます（"+(i+1)+"画目に"+(better+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")"];if(di<TEST_TH&&dirc(u,T[i])>0.3)continue;
-if(dirc(u,T[i])<-0.3||dist(u,T[i].slice().reverse())<TEST_TH)return[(i+1)+"画目の向きが逆です","Arah goresan ke-"+(i+1)+" terbalik"];
-for(let q=0;q<n;q++){if(q!==i&&dist(u,T[q])<TEST_TH)return["書き順がちがいます（"+(i+1)+"画目に"+(q+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")"];}
-return[(i+1)+"画目の形がちがいます","Bentuk goresan ke-"+(i+1)+" salah"];}
+for(let i=0;i<n;i++){const u=N[i];if(!u)return[(i+1)+"画目が短すぎます","Goresan ke-"+(i+1)+" terlalu pendek",i];const di=dist(u,T[i]);let better=-1;for(let q=i+1;q<n;q++){if(dist(u,T[q])<di*0.6&&dist(u,T[q])<TEST_TH){better=q;break;}}if(better>=0)return["書き順がちがいます（"+(i+1)+"画目に"+(better+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")",i];if(di<TEST_TH&&dirc(u,T[i])>0.3)continue;
+if(dirc(u,T[i])<-0.3||dist(u,T[i].slice().reverse())<TEST_TH)return[(i+1)+"画目の向きが逆です","Arah goresan ke-"+(i+1)+" terbalik",i];
+for(let q=0;q<n;q++){if(q!==i&&dist(u,T[q])<TEST_TH)return["書き順がちがいます（"+(i+1)+"画目に"+(q+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")",i];}
+return[(i+1)+"画目の形がちがいます","Bentuk goresan ke-"+(i+1)+" salah",i];}
 return null;}
 function showAnswer(c){$("tink").style.opacity=.3;$("tans").innerHTML="";let delay=100;DATA[c].s.forEach(d=>{const p=mk($("tans"),d),L=p.getTotalLength(),dur=Math.max(.4,L/60);p.style.strokeDasharray=L;p.style.strokeDashoffset=L;setTimeout(()=>{p.style.transition="stroke-dashoffset "+dur+"s linear";p.style.strokeDashoffset=0;},delay);delay+=dur*1000+250;});}
 function showResult(){tend=true;$("tpad").hidden=true;$("tundo").hidden=true;$("tprog").textContent="";$("tlabel").innerHTML='テストの結果<span class="s">Hasil tes</span>';$("tq").textContent=tscore+" / "+TQ.length;$("tq2").textContent=tscore===TQ.length?"全問正解！":"";if(twrong.length)setMsg2("まちがえた字："+twrong.join("、"),"Huruf yang salah: "+twrong.join(", "),"ng");else setMsg2("◎ すばらしい！","Luar biasa!","ok");$("tcheck").innerHTML='もう一度<small class="s">Ulangi tes</small>';}
