@@ -1,7 +1,7 @@
 {
-  "name": "ひらがな なぞり練習",
-  "short_name": "ひらがな練習",
-  "description": "ひらがなの書き順なぞり練習 / Latihan menulis hiragana",
+  "name": "もじ練習",
+  "short_name": "もじ練習",
+  "description": "ひらがな・カタカナ・すうじの書き順なぞり練習 / Latihan menulis huruf Jepang",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
