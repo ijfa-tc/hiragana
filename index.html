@@ -228,8 +228,46 @@ const dirc=(u,v)=>{const a=[u[31][0]-u[0][0],u[31][1]-u[0][1]],b=[v[31][0]-v[0][
 for(let i=0;i<n;i++){const u=N[i];if(!u)return[(i+1)+"画目が短すぎます","Goresan ke-"+(i+1)+" terlalu pendek",i];const di=dist(u,T[i]);let better=-1;for(let q=i+1;q<n;q++){if(dist(u,T[q])<di*0.6&&dist(u,T[q])<TEST_TH){better=q;break;}}if(better>=0)return["書き順がちがいます（"+(i+1)+"画目に"+(better+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")",i];if(di<TEST_TH&&dirc(u,T[i])>0.3)continue;
 if(dirc(u,T[i])<-0.3||dist(u,T[i].slice().reverse())<TEST_TH)return[(i+1)+"画目の向きが逆です","Arah goresan ke-"+(i+1)+" terbalik",i];
 for(let q=0;q<n;q++){if(q!==i&&dist(u,T[q])<TEST_TH)return["書き順がちがいます（"+(i+1)+"画目に"+(q+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")",i];}
+if(rulesOf(c,T).some(r=>r.t==="loop"&&r.i===i)&&!(selfLoop(smooth(u))||turnEnd(smooth(u))>250))return[(i+1)+"画目は小さな輪（むすび）にします","Goresan ke-"+(i+1)+" harus membentuk lingkaran kecil",i];
 return[(i+1)+"画目の形がちがいます","Bentuk goresan ke-"+(i+1)+" salah",i];}
+const rr=relCheck(c,N,T);if(rr)return rr;const rv=rivalCheck(c,N);if(rv)return rv;
 return null;}
+function inter(a1,a2,b1,b2){const dx=a2[0]-a1[0],dy=a2[1]-a1[1],ex=b2[0]-b1[0],ey=b2[1]-b1[1],den=dx*ey-dy*ex;if(Math.abs(den)<1e-9)return null;const wx=b1[0]-a1[0],wy=b1[1]-a1[1],t=(wx*ey-wy*ex)/den,u=(wx*dy-wy*dx)/den;return t>=0&&t<=1&&u>=0&&u<=1?[t,u]:null;}
+function cum(A){const c=[0];for(let i=1;i<A.length;i++)c.push(c[i-1]+Math.hypot(A[i][0]-A[i-1][0],A[i][1]-A[i-1][1]));return c;}
+function smooth(A){let P=A;for(let r=0;r<2;r++)P=P.map((p,i)=>i===0||i===P.length-1?p:[(P[i-1][0]+p[0]+P[i+1][0])/3,(P[i-1][1]+p[1]+P[i+1][1])/3]);return P;}
+function hitsOn(A,B){const C=cum(A),CB=cum(B),LB=CB[CB.length-1],h=[];for(let k=0;k<A.length-1;k++)for(let m=0;m<B.length-1;m++){const r=inter(A[k],A[k+1],B[m],B[m+1]);if(r){const sb=CB[m]+r[1]*(CB[m+1]-CB[m]);h.push({a:C[k]+r[0]*(C[k+1]-C[k]),b:Math.min(sb,LB-sb)});}}return h;}
+function dmin(P,B){let m=1e9;for(let i=0;i<B.length-1;i++){const a=B[i],b=B[i+1],vx=b[0]-a[0],vy=b[1]-a[1],L2=vx*vx+vy*vy||1;let t=((P[0]-a[0])*vx+(P[1]-a[1])*vy)/L2;t=Math.max(0,Math.min(1,t));m=Math.min(m,Math.hypot(P[0]-a[0]-t*vx,P[1]-a[1]-t*vy));}return m;}
+function ptAt(A,C,s){for(let i=1;i<A.length;i++)if(C[i]>=s){const r=(s-C[i-1])/((C[i]-C[i-1])||1);return[A[i-1][0]+r*(A[i][0]-A[i-1][0]),A[i-1][1]+r*(A[i][1]-A[i-1][1])];}return A[A.length-1];}
+const DW={右:"kanan",左:"kiri",下:"bawah",上:"atas"};
+function dirWord(v){return Math.abs(v[0])>Math.abs(v[1])?(v[0]>0?"右":"左"):(v[1]>0?"下":"上");}
+function selfLoop(A){for(let k=0;k<A.length-1;k++)for(let m=k+2;m<A.length-1;m++)if(inter(A[k],A[k+1],A[m],A[m+1]))return true;return false;}
+function turnEnd(A){const n=A.length,st=Math.floor(n*0.6);let s=0;for(let i=st+1;i<n-1;i++){const a=Math.atan2(A[i][1]-A[i-1][1],A[i][0]-A[i-1][0]),b=Math.atan2(A[i+1][1]-A[i][1],A[i+1][0]-A[i][0]);let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;s+=d;}return Math.abs(s)*180/Math.PI;}
+function closeEnd(A){const n=A.length,P=A[n-1],C=cum(A),L=C[n-1];let m=1e9;for(let i=0;i<n;i++)if(C[i]<L*0.7)m=Math.min(m,Math.hypot(P[0]-A[i][0],P[1]-A[i][1]));return m;}
+function endFeat(A,B){const C=cum(A),L=C[C.length-1],h=hitsOn(A,B);let s=null,e=null;for(const x of h){if(!s||x.a<s.a)s=x;if(!e||x.a>e.a)e=x;}
+const v=(P,x)=>{const q=ptAt(A,C,x.a);return[P[0]-q[0],P[1]-q[1]];};
+return{L,s:{prot:s?s.a:null,bm:s?s.b:0,d:dmin(A[0],B),v:s?v(A[0],s):null},e:{prot:e?L-e.a:null,bm:e?e.b:0,d:dmin(A[A.length-1],B),v:e?v(A[A.length-1],e):null}};}
+function chord(A){return Math.hypot(A[A.length-1][0]-A[0][0],A[A.length-1][1]-A[0][1]);}
+function straight(A){return chord(A)/(cum(A)[A.length-1]||1);}
+const RC={};
+function rulesOf(c,T){if(RC[c])return RC[c];const R=[],n=T.length;
+for(let i=0;i<n;i++){for(let j=0;j<n;j++){if(i===j)continue;const f=endFeat(T[i],T[j]);for(const e of["s","e"]){const x=f[e];if(x.prot!=null&&x.prot>=8&&x.bm>=6)R.push({t:"prot",i,j,e,dir:dirWord(x.v)});else if(x.d<=3.5&&(x.prot==null||x.prot<2.5))R.push({t:"stop",i,j,e});}}
+if(selfLoop(T[i])||turnEnd(T[i])>290)R.push({t:"loop",i});}
+for(let i=0;i<n;i++)for(let j=0;j<n;j++){if(i===j)continue;const A=T[i],B=T[j];if(straight(A)<0.9||straight(B)<0.9)continue;const va=[A[31][0]-A[0][0],A[31][1]-A[0][1]],vb=[B[31][0]-B[0][0],B[31][1]-B[0][1]];const cs=Math.abs(va[0]*vb[0]+va[1]*vb[1])/(Math.hypot(...va)*Math.hypot(...vb)||1);if(cs<0.9)continue;if(chord(A)/chord(B)<0.75)R.push({t:"short",i,j});}
+RC[c]=R;return R;}
+function relCheck(c,N0,T){const R=rulesOf(c,T),N=N0.map(smooth),V=[];
+for(const r of R){const i=r.i,j=r.j,a=i+1,b=j+1;let m=null;
+if(r.t==="prot"){const g=endFeat(N[i],N[j])[r.e];if(g.prot==null||g.prot<3)m=[a+"画目は"+b+"画目の"+r.dir+"まで突き出します","Goresan ke-"+a+" harus menembus goresan ke-"+b+" ke "+DW[r.dir],i];}
+else if(r.t==="stop"){const g=endFeat(N[i],N[j])[r.e];if(g.prot!=null&&g.prot>5&&g.prot<15){const w=dirWord(g.v);m=[a+"画目は"+b+"画目より"+w+"に突き出しません","Goresan ke-"+a+" tidak boleh menembus goresan ke-"+b,i];}else if((g.prot==null||g.prot>=15)&&g.d>10)m=[a+"画目を"+b+"画目につけます","Goresan ke-"+a+" harus menyentuh goresan ke-"+b,i];}
+else if(r.t==="loop"){if(!(selfLoop(N[i])||turnEnd(N[i])>250))m=[a+"画目は小さな輪（むすび）にします","Goresan ke-"+a+" harus membentuk lingkaran kecil",i];}
+else if(r.t==="short"){if(chord(N[i])/chord(N[j])>0.95)m=[a+"画目は"+b+"画目より短く書きます","Goresan ke-"+a+" lebih pendek dari ke-"+b,i];}
+if(m)V.push([r.t==="prot"||r.t==="stop"?0:1,-i,m]);}
+if(!V.length)return null;V.sort((x,y)=>x[0]-y[0]||x[1]-y[1]);return V[0][2];}
+function normU(S){const ub=bbox(S.flat());const us=Math.max(ub[2]-ub[0],ub[3]-ub[1])||1;const ux=(ub[0]+ub[2])/2,uy=(ub[1]+ub[3])/2;return S.map(s=>rs(s.map(([x,y])=>[(x-ux)*60/us,(y-uy)*60/us])));}
+const TC={};function tplN(c){if(TC[c])return TC[c];const T=DATA[c].s.map(d=>{const p=mk(window.__SG||$("tsamp"),d);const a=sample(p);p.remove();return a;});TC[c]=normU(T);return TC[c];}
+function seg4(u,t){let m=0;for(let k=0;k<4;k++){let s=0;for(let i=k*8;i<k*8+8;i++)s+=Math.hypot(u[i][0]-t[i][0],u[i][1]-t[i][1]);m=Math.max(m,s/8);}return m;}
+function scoreN(N,c){const T=tplN(c);let s=0;for(let i=0;i<T.length;i++)s+=dist(N[i],T[i])+0.5*seg4(N[i],T[i]);return s/T.length;}
+let RIV=null;function rivalCheck(c,N0){const N=normU(N0);if(N.some(x=>!x))return null;if(!RIV)RIV=Object.keys(SETS).filter(k=>!SETS[k].words).flatMap(orderOf);const mine=scoreN(N,c);let best=null,bs=1e9;for(const o of RIV){if(o===c||!DATA[o]||DATA[o].s.length!==N.length)continue;if(scoreN(tplN(o),c)<6)continue;const sc=scoreN(N,o);if(sc<bs){bs=sc;best=o;}}
+return best&&bs<mine*0.8?["「"+best+"」に近い形になっています。「"+c+"」の形をよく見ましょう","Bentuknya mirip 「"+best+"」, bukan 「"+c+"」",null]:null;}
 function showAnswer(c){$("tink").style.opacity=.3;$("tans").innerHTML="";let delay=100;DATA[c].s.forEach(d=>{const p=mk($("tans"),d),L=p.getTotalLength(),dur=Math.max(.4,L/60);p.style.strokeDasharray=L;p.style.strokeDashoffset=L;setTimeout(()=>{p.style.transition="stroke-dashoffset "+dur+"s linear";p.style.strokeDashoffset=0;},delay);delay+=dur*1000+250;});}
 function showResult(){tend=true;$("tpad").hidden=true;$("tundo").hidden=true;$("tprog").textContent="";$("tlabel").innerHTML='テストの結果<span class="s">Hasil tes</span>';$("tq").textContent=tscore+" / "+TQ.length;$("tq2").textContent=tscore===TQ.length?"全問正解！":"";if(twrong.length)setMsg2("まちがえた字："+twrong.join("、"),"Huruf yang salah: "+twrong.join(", "),"ng");else setMsg2("◎ すばらしい！","Luar biasa!","ok");$("tcheck").innerHTML='もう一度<small class="s">Ulangi tes</small>';}
 tpad.addEventListener("pointerdown",e=>{if(tdone||tend)return;e.preventDefault();tpad.setPointerCapture(e.pointerId);traw=[ptOn(tpad,e)];});
