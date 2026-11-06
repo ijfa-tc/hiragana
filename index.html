@@ -100,6 +100,7 @@ h1{font-family:"Klee One","Hiragino Mincho ProN",serif;font-weight:600;font-size
 <p class="id" id="lsub"></p>
 <div class="tabs" id="tabs"></div>
 <div class="table" id="table"></div>
+<div class="row" id="trow"><button class="btn primary" id="tstart">テスト<small class="s">Tes</small></button></div>
 <p class="legend"><b style="color:var(--ok)">◎</b> まちがいなし / tanpa salah　<b>○</b> クリア / selesai</p>
 </section>
 <section id="practice" hidden>
@@ -125,6 +126,21 @@ h1{font-family:"Klee One","Hiragino Mincho ProN",serif;font-weight:600;font-size
 <button class="btn primary" id="next">次の文字<small class="s">Huruf berikutnya</small></button>
 </div>
 </section>
+<section id="test" hidden>
+<div class="bar"><button class="btn" id="tback">← 一覧<small class="s">Daftar</small></button><span class="cnt" id="tprog"></span><button class="btn" id="tsay" hidden><svg class="ic" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>音声<small class="s">Dengarkan</small></button></div>
+<p class="msg" id="tlabel"></p>
+<div class="head"><span class="big" id="tq"></span><span class="rm" id="tq2"></span></div>
+<div class="msg" id="tmsg"></div>
+<svg class="pad" id="tpad" viewBox="0 0 109 109" aria-label="テストの枠">
+<line x1="54.5" y1="2" x2="54.5" y2="107" stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.5 2.5"/>
+<line x1="2" y1="54.5" x2="107" y2="54.5" stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.5 2.5"/>
+<g id="tsamp" opacity="0"></g>
+<g id="tans" fill="none" stroke="var(--hint)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></g>
+<g id="tink" fill="none" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></g>
+<path id="tcur" fill="none" stroke="var(--trace)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+<div class="row"><button class="btn" id="tundo">1画もどす<small class="s">Hapus 1 goresan</small></button><button class="btn primary" id="tcheck">答え合わせ<small class="s">Periksa</small></button></div>
+</section>
 <p class="foot">書き順データ: <a href="http://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a>（CC BY-SA 3.0, © Ulrich Apel）</p>
 </div>
 <script>
@@ -147,7 +163,7 @@ function save(){try{localStorage.setItem("kana-prog",JSON.stringify(prog))}catch
 function buildMenu(){const L=$("mlist");L.innerHTML="";Object.keys(GROUPS).forEach(gk=>{const G=GROUPS[gk];const b=document.createElement("button");b.className="mi";const gl=document.createElement("span");gl.className="g"+(G.sm?" sm":"");gl.textContent=G.g;b.appendChild(gl);const tx=document.createElement("span");tx.className="t";const tb=document.createElement("b");tb.textContent=G.ja;const ti=document.createElement("span");ti.textContent=G.id;tx.appendChild(tb);tx.appendChild(ti);if(!G.soon){const ch=Object.keys(SETS).filter(k=>SETS[k].g===gk).flatMap(orderOf);const dn=ch.filter(c=>prog[c]===2).length;const tp=document.createElement("span");tp.className="p";tp.textContent="◎ "+dn+" / "+ch.length;tx.appendChild(tp);}b.appendChild(tx);if(G.soon){b.disabled=true;const so=document.createElement("span");so.className="soon";so.textContent="準備中 Segera";b.appendChild(so);}else b.onclick=()=>{grp=gk;set=G.first;showList();};L.appendChild(b);});}
 function showList(){$("menu").hidden=true;$("practice").hidden=true;$("home").hidden=false;$("ltitle").textContent=GROUPS[grp].ja;$("lsub").textContent=GROUPS[grp].id;window.scrollTo(0,0);buildTable();}
 $("mback").onclick=()=>{$("home").hidden=true;$("menu").hidden=false;buildMenu();};
-function buildTable(){const tb=$("tabs");tb.innerHTML="";const GS=Object.keys(SETS).filter(k=>SETS[k].g===grp);tb.hidden=GS.length<2;GS.forEach(k=>{const b=document.createElement("button");b.className="tab";b.setAttribute("aria-pressed",k===set);b.innerHTML=SETS[k].ja+"<small>"+SETS[k].id+"</small>";b.onclick=()=>{set=k;buildTable();};tb.appendChild(b);});const t=$("table");t.innerHTML="";t.className="table"+(SETS[set].cols===3?" c3":"")+(SETS[set].g==="kanji"?" kj":"");if(SETS[set].words){t.className="wlist";SETS[set].words.forEach(w=>{const b=document.createElement("button");b.className="wb";const tx=document.createElement("span");tx.className="t";const a=document.createElement("span");a.className="w";a.textContent=w.k;const r=document.createElement("span");r.className="r";r.textContent=w.r+" ・ "+w.id;tx.appendChild(a);tx.appendChild(r);b.appendChild(tx);const m=document.createElement("span");const p=prog[w.k];m.className="m "+(p===2?"p":"d");m.textContent=p?(p===2?"◎":"○"):"";b.appendChild(m);b.onclick=()=>openWord(w);t.appendChild(b);});return;}SETS[set].rows.forEach(r=>{cellsOf(r,5).forEach(c=>{const b=document.createElement("button");b.className="k"+(c.trim()?"":" empty");if(c.trim()){b.textContent=c;const r=document.createElement("span");r.className="r";r.textContent=ROMA[c];b.appendChild(r);if(MEAN[c]){const q=document.createElement("span");q.className="r";q.textContent=MEAN[c];b.appendChild(q);}b.setAttribute("aria-label",c+" "+ROMA[c]);const p=prog[c];if(p){const m=document.createElement("span");m.className="m "+(p===2?"p":"d");m.textContent=p===2?"◎":"○";b.appendChild(m);}b.onclick=()=>open(c);}else b.tabIndex=-1;t.appendChild(b);});});}
+function buildTable(){$("trow").hidden=!!SETS[set].words;const tb=$("tabs");tb.innerHTML="";const GS=Object.keys(SETS).filter(k=>SETS[k].g===grp);tb.hidden=GS.length<2;GS.forEach(k=>{const b=document.createElement("button");b.className="tab";b.setAttribute("aria-pressed",k===set);b.innerHTML=SETS[k].ja+"<small>"+SETS[k].id+"</small>";b.onclick=()=>{set=k;buildTable();};tb.appendChild(b);});const t=$("table");t.innerHTML="";t.className="table"+(SETS[set].cols===3?" c3":"")+(SETS[set].g==="kanji"?" kj":"");if(SETS[set].words){t.className="wlist";SETS[set].words.forEach(w=>{const b=document.createElement("button");b.className="wb";const tx=document.createElement("span");tx.className="t";const a=document.createElement("span");a.className="w";a.textContent=w.k;const r=document.createElement("span");r.className="r";r.textContent=w.r+" ・ "+w.id;tx.appendChild(a);tx.appendChild(r);b.appendChild(tx);const m=document.createElement("span");const p=prog[w.k];m.className="m "+(p===2?"p":"d");m.textContent=p?(p===2?"◎":"○"):"";b.appendChild(m);b.onclick=()=>openWord(w);t.appendChild(b);});return;}SETS[set].rows.forEach(r=>{cellsOf(r,5).forEach(c=>{const b=document.createElement("button");b.className="k"+(c.trim()?"":" empty");if(c.trim()){b.textContent=c;const r=document.createElement("span");r.className="r";r.textContent=ROMA[c];b.appendChild(r);if(MEAN[c]){const q=document.createElement("span");q.className="r";q.textContent=MEAN[c];b.appendChild(q);}b.setAttribute("aria-label",c+" "+ROMA[c]);const p=prog[c];if(p){const m=document.createElement("span");m.className="m "+(p===2?"p":"d");m.textContent=p===2?"◎":"○";b.appendChild(m);}b.onclick=()=>open(c);}else b.tabIndex=-1;t.appendChild(b);});});}
 function mk(par,d){const p=document.createElementNS(NS,"path");p.setAttribute("d",d);par.appendChild(p);return p;}
 function sample(p){const L=p.getTotalLength(),a=[];for(let i=0;i<32;i++){const q=p.getPointAtLength(L*i/31);a.push([q.x,q.y]);}return a;}
 function rs(pts){let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);if(L<2)return null;const step=L/31,out=[pts[0]];let acc=0;const P=pts.slice();for(let i=1;i<P.length;i++){const d=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);if(acc+d>=step&&d>0){const r=(step-acc)/d,q=[P[i-1][0]+r*(P[i][0]-P[i-1][0]),P[i-1][1]+r*(P[i][1]-P[i-1][1])];out.push(q);P.splice(i,0,q);acc=0;}else acc+=d;}while(out.length<32)out.push(pts[pts.length-1]);return out.slice(0,32);}
@@ -187,6 +203,39 @@ $("say").hidden=!("speechSynthesis" in window);
 $("say").onclick=()=>{try{const u=new SpeechSynthesisUtterance(WM?WM.k:cur);u.lang="ja-JP";u.rate=0.85;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}};
 $("next").onclick=()=>{if(WM){const S=SETS[set].words;const i=S.indexOf(WM);openWord(S[(i+1)%S.length]);return;}const O=orderOf(setOf(cur));const i=O.indexOf(cur);open(O[(i+1)%O.length]);};
 $("back").onclick=()=>{clearT();if(!WM){set=setOf(cur);grp=SETS[set].g;}$("practice").hidden=true;$("home").hidden=false;buildTable();};
+const TEST_TH=15;let TQ=[],ti=0,tscore=0,twrong=[],tstr=[],traw=null,tdone=false,tend=false;const tpad=$("tpad");
+function ptOn(sv,e){const m=sv.getScreenCTM().inverse(),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(m);return[q.x,q.y];}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const TL={hira:["ひらがなで書きましょう","Tulis dengan hiragana"],kata:["カタカナで書きましょう","Tulis dengan katakana"],num:["すうじで書きましょう","Tulis angkanya"],kanji:["かんじで書きましょう","Tulis kanjinya"]};
+function setMsg2(j,id,cls){const m=$("tmsg");m.className="msg"+(cls?" "+cls:"");m.innerHTML=j+'<span class="s">'+id+"</span>";}
+function startTest(){TQ=shuffle(orderOf(set).slice()).slice(0,10);ti=0;tscore=0;twrong=[];tend=false;$("home").hidden=true;$("test").hidden=false;window.scrollTo(0,0);showQ();}
+function redrawInk(){$("tink").innerHTML=tstr.map(p=>'<path d="M'+p.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join("L")+'"/>').join("");}
+function showQ(){const c=TQ[ti];tstr=[];tdone=false;$("tpad").hidden=false;$("tundo").hidden=false;$("tink").style.opacity=1;$("tink").innerHTML="";$("tans").innerHTML="";$("tcur").setAttribute("d","");$("tprog").textContent=(ti+1)+" / "+TQ.length;const L=TL[grp]||TL.hira;$("tlabel").innerHTML=L[0]+'<span class="s">'+L[1]+"</span>";if(grp==="kanji"){$("tq").textContent=MEAN[c];$("tq2").textContent=ROMA[c];}else{$("tq").textContent=ROMA[c];$("tq2").textContent="";}setMsg2("書き終わったら「答え合わせ」を押してください","Setelah selesai, tekan Periksa.");$("tcheck").innerHTML='答え合わせ<small class="s">Periksa</small>';$("tundo").disabled=false;}
+function bbox(a){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;a.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);});return[x0,y0,x1,y1];}
+function judge(c){const T=DATA[c].s.map(d=>{const p=mk($("tsamp"),d);const a=sample(p);p.remove();return a;});const n=T.length;
+if(tstr.length!==n)return["画数がちがいます（正しくは"+n+"画、書いたのは"+tstr.length+"画）","Jumlah goresan salah (seharusnya "+n+")"];
+const tb=bbox(T.flat()),ub=bbox(tstr.flat());const ts=Math.max(tb[2]-tb[0],tb[3]-tb[1]),us=Math.max(ub[2]-ub[0],ub[3]-ub[1])||1,sc=ts/us;const tx=(tb[0]+tb[2])/2,ty=(tb[1]+tb[3])/2,ux=(ub[0]+ub[2])/2,uy=(ub[1]+ub[3])/2;
+const N=tstr.map(s=>rs(s.map(([x,y])=>[(x-ux)*sc+tx,(y-uy)*sc+ty])));
+const dirc=(u,v)=>{const a=[u[31][0]-u[0][0],u[31][1]-u[0][1]],b=[v[31][0]-v[0][0],v[31][1]-v[0][1]],la=Math.hypot(...a),lb=Math.hypot(...b);return lb<3||la<1?1:(a[0]*b[0]+a[1]*b[1])/(la*lb);};
+for(let i=0;i<n;i++){const u=N[i];if(!u)return[(i+1)+"画目が短すぎます","Goresan ke-"+(i+1)+" terlalu pendek"];const di=dist(u,T[i]);let better=-1;for(let q=i+1;q<n;q++){if(dist(u,T[q])<di*0.6&&dist(u,T[q])<TEST_TH){better=q;break;}}if(better>=0)return["書き順がちがいます（"+(i+1)+"画目に"+(better+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")"];if(di<TEST_TH&&dirc(u,T[i])>0.3)continue;
+if(dirc(u,T[i])<-0.3||dist(u,T[i].slice().reverse())<TEST_TH)return[(i+1)+"画目の向きが逆です","Arah goresan ke-"+(i+1)+" terbalik"];
+for(let q=0;q<n;q++){if(q!==i&&dist(u,T[q])<TEST_TH)return["書き順がちがいます（"+(i+1)+"画目に"+(q+1)+"画目を書いています）","Urutan salah (goresan ke-"+(i+1)+")"];}
+return[(i+1)+"画目の形がちがいます","Bentuk goresan ke-"+(i+1)+" salah"];}
+return null;}
+function showAnswer(c){$("tink").style.opacity=.3;$("tans").innerHTML="";let delay=100;DATA[c].s.forEach(d=>{const p=mk($("tans"),d),L=p.getTotalLength(),dur=Math.max(.4,L/60);p.style.strokeDasharray=L;p.style.strokeDashoffset=L;setTimeout(()=>{p.style.transition="stroke-dashoffset "+dur+"s linear";p.style.strokeDashoffset=0;},delay);delay+=dur*1000+250;});}
+function showResult(){tend=true;$("tpad").hidden=true;$("tundo").hidden=true;$("tprog").textContent="";$("tlabel").innerHTML='テストの結果<span class="s">Hasil tes</span>';$("tq").textContent=tscore+" / "+TQ.length;$("tq2").textContent=tscore===TQ.length?"全問正解！":"";if(twrong.length)setMsg2("まちがえた字："+twrong.join("、"),"Huruf yang salah: "+twrong.join(", "),"ng");else setMsg2("◎ すばらしい！","Luar biasa!","ok");$("tcheck").innerHTML='もう一度<small class="s">Ulangi tes</small>';}
+tpad.addEventListener("pointerdown",e=>{if(tdone||tend)return;e.preventDefault();tpad.setPointerCapture(e.pointerId);traw=[ptOn(tpad,e)];});
+tpad.addEventListener("pointermove",e=>{if(!traw)return;traw.push(ptOn(tpad,e));$("tcur").setAttribute("d","M"+traw.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join("L"));});
+function tEnd(){if(!traw)return;const p=traw;traw=null;$("tcur").setAttribute("d","");let L=0;for(let i=1;i<p.length;i++)L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);if(L<2)return;tstr.push(p);redrawInk();}
+tpad.addEventListener("pointerup",tEnd);tpad.addEventListener("pointercancel",tEnd);
+$("tundo").onclick=()=>{if(tdone)return;tstr.pop();redrawInk();};
+$("tcheck").onclick=()=>{if(tend){startTest();return;}const c=TQ[ti];if(tdone){ti++;if(ti>=TQ.length)showResult();else showQ();return;}if(!tstr.length){setMsg2("まだ何も書いていません","Belum ada tulisan.","ng");return;}
+const r=judge(c);tdone=true;$("tundo").disabled=true;if(!r){tscore++;setMsg2("◎ 正解！","Benar!","ok");}else{twrong.push(c);setMsg2("× "+r[0],r[1],"ng");showAnswer(c);}
+$("tcheck").innerHTML=ti<TQ.length-1?'次の問題<small class="s">Soal berikutnya</small>':'結果を見る<small class="s">Lihat hasil</small>';};
+$("tback").onclick=()=>{$("test").hidden=true;$("home").hidden=false;buildTable();};
+$("tsay").hidden=!("speechSynthesis" in window);
+$("tsay").onclick=()=>{try{const u=new SpeechSynthesisUtterance(TQ[ti]);u.lang="ja-JP";u.rate=0.85;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}};
+$("tstart").onclick=startTest;
 buildMenu();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}</script>
